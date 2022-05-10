@@ -1,0 +1,8 @@
+path: ../datasets/MOT_VisDrone_det_0.5.v1-v1.yolov5pytorch  # dataset root dir
+train: train/images  # train images (relative to 'path')  122,879 images
+val: valid/images  # val images (relative to 'path')  548 images
+test: test/images  # test images (optional)  1610 images
+
+# Classes
+nc: 1
+names: ['people']

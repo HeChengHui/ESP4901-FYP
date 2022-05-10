@@ -1,0 +1,8 @@
+path: ../datasets/visdrone-det-people  # dataset root dir
+train: train/images  # train images (relative to 'path')  6,034 images
+val: valid/images  # val images (relative to 'path')  1,733 images
+test: test/images  # test images (optional)  859 images
+
+# Classes
+nc: 1
+names: ['people']

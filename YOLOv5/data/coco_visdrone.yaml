@@ -1,0 +1,8 @@
+path: ../datasets/COCO_VisDroneDet  # dataset root dir
+train: train/images  # train images (relative to 'path')  122,879 images
+val: VisDrone2019-DET-val/images  # val images (relative to 'path')  548 images
+test: VisDrone2019-DET-test-dev/images  # test images (optional)  1610 images
+
+# Classes
+nc: 1
+names: ['people']
