@@ -6,3 +6,4 @@ Summary: The end goal is to formulate a Real-Time Multiple Object Tracking (MOT)
 
 * YOLOv5 training information can be seen [here](https://wandb.ai/d3cpt).
 * AGX installed with: Python3.8, Pytorch 1.7.0, Torchvision 0.8.1. (Mainly referred to this [link](https://forums.developer.nvidia.com/t/install-pytorch-with-python-3-8-on-jetpack-4-4-1/160060/2))
+* Evaluation done using [TrackEval](https://github.com/JonathonLuiten/TrackEval).
