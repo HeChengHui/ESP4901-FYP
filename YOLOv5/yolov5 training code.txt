@@ -9,11 +9,150 @@
 [15/3/22]
 
 On dell:
-train from scratch since dealing with big dataset and in the architecture of 5s (detect small, medium, large), auto batch size to solve for a 90% CUDA memory-utilization batch-size given your training settings, epochs 300 first else can keep resume tranining for another 300, evovle enabled for hyperparameter optimisation, augmentation in hyp.scratch (low for n/s, medium for m), training image resized to 1920x1080, force rectangle image training, cache to disk since got lots of ram, optimiser leave as SGD default
+train from scratch since dealing with big dataset and in the architecture of 5s (detect small, medium, large), auto batch size to solve for a 90% CUDA memory-utilization batch-size given your training settings=size of 7, epochs 300 first else can keep resume tranining for another 300, evovle enabled for hyperparameter optimisation, augmentation in hyp.scratch (low for n/s, medium for m) using HSV/scale/horizontal flip/mosaic, training image resized to 1920 since real application in 1920x1080, cache to disk since need more than 32GB, optimiser leave as SGD default
 
-python train.py --device 0 --weights '' --cfg yolov5s.yaml --batch-size -1 --epochs 300 --evolve --hyp 'data/hyps/hyp.scratch-low_cocoVisdrone' --data VisDrone.yaml --imgsz 1920 --rect --cache --name ''
+python train.py --device 0 --weights '' --cfg yolov5s_cocoVisdrone.yaml --data coco_visdrone.yaml --batch-size 7 --epochs 300 --evolve --hyp hyp.scratch-low_cocoVisdrone.yaml --imgsz 1920 --cache disk --name yolov5s_cocoVisdrone
 
 Things to change
-1) change the class parameter in the cfg yaml (think better make a new yaml, change and use that) & change the name accordingly
-2) make sure to add hyp.scratch-low_cocoVisdrone to data/hyps
-3) make sure to add the name
+1) change the class parameter in the cfg yaml (think better make a new yaml, change and use that)
+2) make sure the --data yaml file is correct
+3) make sure to add hyp.scratch-low_cocoVisdrone to data/hyps
+4) make sure to add the name
+
+[16/3/22]
+Result:
+Would need to take 2hr++ to train 1 epoch
+
+Discussion:
+1) lower img size 960 (960x540)
+2) remove evolve
+3) with the lower size should be able to cache to ram
+
+python train.py --device 0 --weights '' --cfg yolov5s_cocoVisdrone.yaml --data coco_visdrone.yaml --batch-size 7 --epochs 300 --hyp hyp.scratch-low_cocoVisdrone.yaml --imgsz 960 --cache disk --name yolov5s_cocoVisdrone2
+
+*named change
+
+[21/3/22]
+On dell: 
+using yolov5s cause is not a big dataset, autobatch, 300 epochs, same augmentation, image size at 1920 since they are stretched to 1920x1080
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 1920 --cache disk --name yolov5s_motVisdrone
+
+1) at 1920, estimated to take ard 20+mins per epoch. hence gg to make it faster by training at 960, and with evolve since it should be faster now.
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone --evolve
+2) Looks like using --evolve only returns the hyperparameters after 1 generation. So should not use that. see my issue in yolov5 for more details
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone
+
+[23/3/22]
+on dell:
+resume training of coco_visdrone2
+
+python train.py --resume "runs\train\yolov5s_cocoVisdrone2\weights\last.pt"
+
+[24/3/22]
+on dell:
+I am gg to try training a model that has 1 head that is for detecting xs objects. Since i have 2 cfg files to try, i am gg to test it out on MOT_visdrone roboflow dataset.
+
+1) python train.py --device 0 --weights '' --cfg yolov5s-p234.yaml --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_p234
+
+2) python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_fpn234
+
+[25/3/22]
+The 1) training encountered CUDA OOM after 60 epochs. gg to retry with 20 batch size.
+
+1) python train.py --device 0 --weights '' --cfg yolov5s-p234.yaml --data mot_visdrone.yaml --batch-size 20 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_p234_batch20
+
+[28/3/22]
+start training 2)
+
+python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_fpn234
+[30/3/22]
+ended but got error fusing layers. Can still try out.
+
+[30/3/22]
+gg to try train just on visdrone since mot+visdrone on v5s give the best HOTA as of date. While i was processing the new dataset to have only visdrone images and people only labels, i am curious on the train/val/test split so i adjusted it to 70/20/10% respectively.
+
+python train.py --device 0 --weights yolov5s.pt --data visdrone_people.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_visdrone
+
+[31/3/22]
+gg to train a fpn version of just using visdrone since the paper says that fpn is fast.
+
+python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data visdrone_people.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_visdrone_fpn234
+[2/4/22]
+Trying again since failed previous time
+- still failed
+
+[5/4/22]
+gg to try the fpn they have, see got any problems. Run the default fpn training for 1 epoch to see got any errors
+
+python train.py --device 0 --weights '' --cfg yolov5-fpn.yaml --data visdrone_people.yaml --batch-size -1 --epochs 1 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5_fpn_test
+
+CONCLUSION: no errors. Hence might be me changing the backbone that is causing the error.
+
+gg to try with cfg fixed.
+
+python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data visdrone_people.yaml --batch-size -1 --epochs 1 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5_fpn_test2
+
+CONCLUSION: no errors. gg forward to train this now.
+
+python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data visdrone_people.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_visdrone_fpn234
+
+CONCLUSION: Still failed. gg to give up doing fpn.
+
+[6/4/22]
+gg to resume coco_visdrone training
+
+[7/3/22]
+After meeting with prof, gg to try out training with different activation function. 1) tanh 2) leaky relu. baseline is silu (sigmoid linear). Change in model/common.py. yolov5s strcuture only has the conv node having activation function. Train using the best model as of now, which is mot_visdrone. Looks like can just use yolov5s.
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_Tanh
+[8/4/22] 
+Not sure why keep failing. gg to restart com and retry this again with leaky relu
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size -1 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_LRelu
+[9/4/22]
+Failed again. See https://stackoverflow.com/questions/61473330/cuda-error-cublas-status-alloc-failed-when-calling-cublascreatehandle. might be batch size?? but not sure why before it works. gg to retry tanh. previously autobatch give it 37, now i try with 32.
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size 32 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_Tanh2
+[11/4/22] 
+works! looks like is the batch size problem. gonna try with LRelu, with 37 (auto) -> 32 batch size. leakyRelu(0.1) is the same activation function in yolov3
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size 32 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_LRelu2
+
+[12/4/22]
+successful. loading and printing the model shows it is indeed using the correct activation function. Next would be testing when lr=0.02 from 0.01 (both final and initial). according to yoloz paper, lr=0.02 got improvement for small model. AF back to silu.
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size 32 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_lr02
+
+[13/4/22]
+gg back to try fpn struc.auto gives 24 batchsize. trying with 22.
+
+python train.py --device 0 --weights '' --cfg yolov5s-fpn234.yaml --data mot_visdrone.yaml --batch-size 22 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_fpn234
+
+[14/4/22]
+train a mot_visdrone model with LRelu and lr of 0.02
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size 32 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_LRelu_lr02
+
+[16/4/22]
+try with focal loss gamma of 2 since RetinNet paper says 2 works best for them. fl_gamma in the hyp file.
+
+python train.py --device 0 --weights yolov5s.pt --data mot_visdrone.yaml --batch-size 32 --epochs 300 --hyp hyp.scratch-low_MOTvisdrone.yaml --imgsz 960 --cache disk --name yolov5s_motVisdrone_LRelu_lr02_Focal
+
+[18/4/22]
+resume training coco_visdrone2. but i cant:
+Transferred 349/349 items from runs\train\yolov5s_cocoVisdrone2\weights\last_backup.pt
+Scaled weight_decay = 0.0004921875
+optimizer: SGD with parameter groups 57 weight (no decay), 60 weight, 60 bias
+Traceback (most recent call last):
+  File "train.py", line 667, in <module>
+    main(opt)
+  File "train.py", line 562, in main
+    train(opt.hyp, opt, device, callbacks)
+  File "train.py", line 191, in train
+    optimizer.load_state_dict(ckpt['optimizer'])
+  File "C:\Users\chenghui\anaconda3\envs\yolov5\lib\site-packages\torch\optim\optimizer.py", line 146, in load_state_dict
+    raise ValueError("loaded state dict contains a parameter group "
+ValueError: loaded state dict contains a parameter group that doesn't match the size of optimizer's group
+
+Cant figure out what is wrong....
