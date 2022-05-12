@@ -1,0 +1,19 @@
+1) python train.py --data VisDrone.yaml --weights yolov5s6.pt
+^ using default VisDrone dataset (no preprocessing)
+
+2) python train.py --data roboflow_VisDrone.yaml --weights yolov5s6.pt
+^ using dataset process and preprocessed by roboflow 
+
+
+
+[15/3/22]
+
+On dell:
+train from scratch since dealing with big dataset and in the architecture of 5s (detect small, medium, large), auto batch size to solve for a 90% CUDA memory-utilization batch-size given your training settings, epochs 300 first else can keep resume tranining for another 300, evovle enabled for hyperparameter optimisation, augmentation in hyp.scratch (low for n/s, medium for m), training image resized to 1920x1080, force rectangle image training, cache to disk since got lots of ram, optimiser leave as SGD default
+
+python train.py --device 0 --weights '' --cfg yolov5s.yaml --batch-size -1 --epochs 300 --evolve --hyp 'data/hyps/hyp.scratch-low_cocoVisdrone' --data VisDrone.yaml --imgsz 1920 --rect --cache --name ''
+
+Things to change
+1) change the class parameter in the cfg yaml (think better make a new yaml, change and use that) & change the name accordingly
+2) make sure to add hyp.scratch-low_cocoVisdrone to data/hyps
+3) make sure to add the name
